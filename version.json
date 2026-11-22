@@ -1,5 +1,5 @@
 {
-  "version": 8,
-  "built": "22 Nov 2026 20:48",
-  "notes": "People tab blocks are now sized to their number of people."
+  "version": 9,
+  "built": "22 Nov 2026 20:50",
+  "notes": "Tick boxes on the People tab to mark groups you have checked."
 }
