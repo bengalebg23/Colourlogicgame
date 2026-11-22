@@ -87,9 +87,9 @@ function computeBlockers(){
 // Middle (spinning ring) at the start, and the left lane front -> back. Counts are people (4 per line).
 const DEFAULT_POOL = { Y:52, C:36, R:88, G:40 };
 const DEFAULT_LEFT = [
-  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['B',32],['P',24],['C',16],['N',16],['C',20],
-  ['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],['C',20],
-  ['G',20],['O',20],['R',16],['Y',32],['G',24],
+  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['P',16],['B',24],['G',24],['LP',24],['N',16],
+  ['C',20],['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],
+  ['C',20],['G',20],['O',20],['R',16],['Y',32],['G',24],
 ];
 const RIGHT_FRONT = ['Y','B','R']; // seen at the front of the right lane
 

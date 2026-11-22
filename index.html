@@ -216,9 +216,9 @@ function computeBlockers(){
 // Middle (spinning ring) at the start, and the left lane front -> back. Counts are people (4 per line).
 const DEFAULT_POOL = { Y:52, C:36, R:88, G:40 };
 const DEFAULT_LEFT = [
-  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['B',32],['P',24],['C',16],['N',16],['C',20],
-  ['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],['C',20],
-  ['G',20],['O',20],['R',16],['Y',32],['G',24],
+  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['P',16],['B',24],['G',24],['LP',24],['N',16],
+  ['C',20],['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],
+  ['C',20],['G',20],['O',20],['R',16],['Y',32],['G',24],
 ];
 const RIGHT_FRONT = ['Y','B','R']; // seen at the front of the right lane
 
@@ -331,8 +331,8 @@ document.getElementById('fleet').innerHTML=Object.keys(COLS).map(c=>{const vs=V.
 document.getElementById('btab').innerHTML=V.map(v=>`<tr><td>${chip(v.id)}</td><td class="n">${v.cap}</td><td>${BL[v.id].map(chip).join(' ')||'<b class="ok">Free</b>'}</td><td>${FREES[v.id].map(chip).join(' ')}</td></tr>`).join('');
 // ---- people tab
 let left, pool;
-function load(){ try{const d=JSON.parse(localStorage.getItem('l8v2')||'null'); if(d){left=d.left;pool=d.pool;return;}}catch(e){} left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; }
-function save(){ try{localStorage.setItem('l8v2',JSON.stringify({left,pool}));}catch(e){} if(typeof markDirty==='function') markDirty(); }
+function load(){ try{const d=JSON.parse(localStorage.getItem('l8v3')||'null'); if(d){left=d.left;pool=d.pool;return;}}catch(e){} left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; }
+function save(){ try{localStorage.setItem('l8v3',JSON.stringify({left,pool}));}catch(e){} if(typeof markDirty==='function') markDirty(); }
 const opts=c=>Object.keys(COLS).map(k=>`<option value="${k}"${k===c?' selected':''}>${COLS[k].name}</option>`).join('');
 function drawPeople(){
   document.getElementById('strip').innerHTML=left.map(([c,n],i)=>`<span class="blk" style="background:${COLS[c].hex};flex:${n} 0 0">${i+1}. ${n}</span>`).join('');
@@ -347,7 +347,7 @@ document.getElementById('lane').addEventListener('click',e=>{const b=e.target.cl
   save(); drawPeople(); rerun();});
 document.getElementById('poolEd').addEventListener('change',e=>{pool[e.target.dataset.pc]=Math.max(0,+e.target.value||0); save(); drawPeople(); rerun();});
 document.getElementById('add').onclick=()=>{left.push(['Y',20]); save(); drawPeople(); rerun();};
-document.getElementById('reset').onclick=()=>{try{localStorage.removeItem('l8v2')}catch(e){} load(); save(); drawPeople(); rerun();};
+document.getElementById('reset').onclick=()=>{try{localStorage.removeItem('l8v3')}catch(e){} load(); save(); drawPeople(); rerun();};
 
 // ---- scenarios
 const OPEN=['Y2','R1','Y1','R2','G1','G2','C1','LP3'];
