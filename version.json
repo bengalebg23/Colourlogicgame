@@ -1,5 +1,5 @@
 {
-  "version": 9,
-  "built": "22 Nov 2026 20:50",
-  "notes": "Tick boxes on the People tab to mark groups you have checked."
+  "version": 10,
+  "built": "22 Nov 2026 20:57",
+  "notes": "Ticked groups and a ticked middle are locked."
 }
