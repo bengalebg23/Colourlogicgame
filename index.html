@@ -56,6 +56,9 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 .bay small{display:block;font:600 13px Inter,sans-serif}
 .pool{display:flex;flex-wrap:wrap;gap:6px}
 .strip{display:flex;flex-wrap:wrap;gap:3px}
+.szrow{display:flex;flex-wrap:wrap;gap:2px;align-items:stretch;margin-bottom:8px}
+.sz{height:44px;border-radius:6px;color:#fff;font:600 12px/1.1 Inter,sans-serif;display:flex;align-items:center;justify-content:center;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.7);overflow:hidden;flex:none}
+.szlab{width:56px;height:44px;display:flex;align-items:center;font:600 12px/1.15 Inter,sans-serif;color:var(--mut);flex:none}
 .blk{border-radius:8px;color:#fff;font:600 13px Inter,sans-serif;padding:6px 6px;min-width:44px;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .verdict{font:800 22px "Baloo 2",sans-serif}
 .ok{color:var(--go)}.bad{color:var(--bad)}.warn{color:var(--warn)}
@@ -70,7 +73,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v7</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v8</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -384,7 +387,14 @@ function load(){ try{const d=JSON.parse(localStorage.getItem('l8v3')||'null'); i
 function save(){ try{localStorage.setItem('l8v3',JSON.stringify({left,pool}));}catch(e){} if(typeof markDirty==='function') markDirty(); }
 const opts=c=>Object.keys(COLS).map(k=>`<option value="${k}"${k===c?' selected':''}>${COLS[k].name}</option>`).join('');
 function drawPeople(){
-  document.getElementById('strip').innerHTML=left.map(([c,n],i)=>`<span class="blk" style="background:${COLS[c].hex};flex:${n} 0 0">${i+1}. ${n}</span>`).join('');
+  // every block is sized to its people: 1 line of 4 people = 12px wide
+  const W=n=>Math.max(6,n/4*12);
+  const lab=(n,i,w)=>w>=60?`${i}<br>${n}`:w>=30?`${n}`:'';
+  const midTot=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
+  document.getElementById('strip').innerHTML=
+    `<div class="szrow"><span class="szlab">Middle<br>${midTot}</span>${Object.keys(COLS).filter(c=>pool[c]>0).map(c=>`<span class="sz" style="background:${COLS[c].hex};width:${W(pool[c])}px" title="${COLS[c].name} ${pool[c]}">${lab(pool[c],'',W(pool[c]))}</span>`).join('')}</div>
+     <div class="szrow"><span class="szlab">Left<br>track</span>${left.map(([c,n],i)=>`<span class="sz" style="background:${COLS[c].hex};width:${W(n)}px" title="Group ${i+1}: ${COLS[c].name} ${n}">${lab(n,'#'+(i+1),W(n))}</span>`).join('')}</div>
+     <p class="muted" style="margin:6px 0 0;font-size:13px">Each block's width matches its people: 12px per line of 4. Tap and hold a thin block for its details, or see the list below.</p>`;
   document.getElementById('lane').innerHTML=left.map(([c,n],i)=>`<li>${i+1}<select data-i="${i}" data-k="c" aria-label="Colour of group ${i+1}">${opts(c)}</select><input data-i="${i}" data-k="n" type="number" step="4" min="4" value="${n}" aria-label="People in group ${i+1}"><button data-i="${i}" data-k="up" aria-label="Move up">↑</button><button data-i="${i}" data-k="dn" aria-label="Move down">↓</button><button data-i="${i}" data-k="x" aria-label="Remove">×</button></li>`).join('');
   document.getElementById('poolEd').innerHTML=Object.keys(COLS).map(c=>`<label class="row" style="margin-bottom:6px">${dot(c)}<span style="width:90px">${COLS[c].name}</span><input type="number" step="4" min="0" value="${pool[c]||0}" data-pc="${c}" style="width:90px"></label>`).join('');
   const ptot=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
@@ -536,7 +546,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=7, APP_BUILT='22 Nov 2026 18:02';
+const APP_VERSION=8, APP_BUILT='22 Nov 2026 20:48';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
