@@ -71,7 +71,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <header><h1>Level 8 solver</h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
-<button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocking</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
+<button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
 <main>
 <section id="map">
@@ -81,8 +81,16 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
  <div class="card"><h3>Fleet</h3><div id="fleet"></div></div>
 </section>
 <section id="block" hidden>
- <div class="card"><h2>What blocks what</h2><p class="muted">Worked out from the board: a vehicle is blocked by anything lying in its straight path to the edge. It can go once every vehicle in its list has gone. At the start only <b>Y1</b> and <b>Y2</b> are free.</p>
- <table class="stack"><thead><tr><th>Vehicle</th><th>Seats</th><th>Blocked by</th><th>Frees up</th></tr></thead><tbody id="btab"></tbody></table></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Check the blocks</h2><span class="muted" id="bk-prog"></span></div>
+  <p class="muted" style="margin:4px 0 8px">Tap a vehicle. Dashed band = its path to the edge. <b class="bad">Red</b> = blocks it. <span class="ok">Green dashed ring</span> = it frees these. Small green dot = you've checked it.</p>
+  <div class="board" id="b-block"><img alt="Board for checking blocks" src="__IMG__"></div>
+  <div id="bk-info" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:8px"><button id="bk-prev">◀ Prev</button><button id="bk-ok">Looks right ✓</button><button id="bk-edit" aria-pressed="false">Fix blockers</button><button id="bk-next">Next ▶</button></div>
+  <p class="muted" id="bk-editmsg" style="margin:6px 0 0" hidden>Fix mode: tap any vehicle on the board to add it to, or remove it from, <b id="bk-who"></b>'s blockers. Tap Fix blockers again when done.</p></div>
+ <div class="card"><h3>Your fixes</h3><div id="bk-fixes"></div>
+  <div class="row" style="margin-top:8px"><button id="bk-copy">Copy fixes</button><button id="bk-reset">Undo all fixes</button><span class="muted" id="bk-msg"></span></div>
+  <p class="muted" style="margin:6px 0 0">Fixes are used straight away by Scenarios and Play on this device. Send me the copied text and I'll build them into the app.</p></div>
+ <div class="card"><h3>Full list</h3><table class="stack"><thead><tr><th>Vehicle</th><th>Seats</th><th>Blocked by</th><th>Frees up</th></tr></thead><tbody id="btab"></tbody></table></div>
 </section>
 <section id="people" hidden>
  <div class="card"><h2>Left track, front to back</h2><p class="muted">Your counts from the game (4 people per line). Change any group and everything reruns.</p>
@@ -129,8 +137,14 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 {
 __MODEL__
 const IMG_W=1115, IMG_H=999;
-const BL=computeBlockers();
-const FREES={}; for(const v of V) FREES[v.id]=V.filter(o=>BL[o.id].includes(v.id)).map(o=>o.id);
+const BASE=computeBlockers(), BL={}, FREES={};
+let OVR={add:{},rem:{},ok:[]};
+try{ const o=JSON.parse(localStorage.getItem('l8blk')||'null'); if(o) OVR={add:o.add||{},rem:o.rem||{},ok:o.ok||[]}; }catch(e){}
+function applyBL(){ for(const v of V){ const rem=OVR.rem[v.id]||[], add=OVR.add[v.id]||[];
+    BL[v.id]=[...BASE[v.id].filter(b=>!rem.includes(b)), ...add.filter(b=>!BASE[v.id].includes(b))]; }
+  for(const v of V) FREES[v.id]=V.filter(o=>BL[o.id].includes(v.id)).map(o=>o.id); }
+function saveOVR(){ try{localStorage.setItem('l8blk',JSON.stringify(OVR))}catch(e){} }
+applyBL();
 const byId=Object.fromEntries(V.map(v=>[v.id,v]));
 const SZ={L:'Large bus',M:'Medium bus',S:'Small car'};
 const dot=c=>`<span class="dot" style="background:${COLS[c].hex}"></span>`;
@@ -139,14 +153,18 @@ const ctr=v=>[(v.bb[0]+v.bb[2])/2,(v.bb[1]+v.bb[3])/2];
 let sel=null;
 function overlay(el,opts){
   let svg=el.querySelector('svg'); if(!svg){svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`0 0 ${IMG_W} ${IMG_H}`);el.appendChild(svg);}
-  svg.innerHTML=V.map(v=>{const [x,y]=ctr(v), gone=opts.gone&&opts.gone.has(v.id), free=opts.free&&opts.free.has(v.id);
+  let pre='';
+  if(opts.path){ const pv=byId[opts.path]; pre=`<polygon points="${pathPoly(pv).map(p=>p.join(',')).join(' ')}" fill="rgba(255,255,255,.28)" stroke="#fff" stroke-width="4" stroke-dasharray="14 10"/>`; }
+  svg.innerHTML=pre+V.map(v=>{const [x,y]=ctr(v), gone=opts.gone&&opts.gone.has(v.id), free=opts.free&&opts.free.has(v.id);
     const ring=free?`<circle cx="${x}" cy="${y}" r="40" fill="none" stroke="#1f9d4a" stroke-width="8"/>`:'';
     const hi=opts.sel===v.id?`<circle cx="${x}" cy="${y}" r="44" fill="none" stroke="#fff" stroke-width="8"/>`:'';
-    const bl=opts.sel&&BL[opts.sel].includes(v.id)?`<circle cx="${x}" cy="${y}" r="40" fill="rgba(210,53,58,.55)"/>`:'';
+    const bl=opts.sel&&BL[opts.sel].includes(v.id)?`<circle cx="${x}" cy="${y}" r="40" fill="rgba(210,53,58,.6)" stroke="#fff" stroke-width="4"/>`:'';
+    const fr=opts.frees&&FREES[opts.frees].includes(v.id)?`<circle cx="${x}" cy="${y}" r="40" fill="none" stroke="#2fd36a" stroke-width="8" stroke-dasharray="10 8"/>`:'';
+    const ck=opts.checked&&opts.checked.has(v.id)&&opts.sel!==v.id?`<circle cx="${x+34}" cy="${y-30}" r="13" fill="#1f9d4a" stroke="#fff" stroke-width="3"/>`:'';
     const poly=gone?`<polygon points="${bodyPoly(v).map(p=>p.join(',')).join(' ')}" fill="#3b4048" stroke="#2a2e34" stroke-width="3" stroke-linejoin="round"/>`:'';
     const n=opts.order&&opts.order[v.id];
     const badge=n?`<circle cx="${x}" cy="${y}" r="30" fill="#1f9d4a" stroke="#fff" stroke-width="5"/><text x="${x}" y="${y+1}" style="stroke:none;font-size:${n>9?28:32}px">${n}</text>`:'';
-    return `<g class="tag" data-id="${v.id}">${poly}${bl}${ring}${hi}${n?'':`<text x="${x}" y="${y}" opacity="${gone?0.45:1}">${v.id}</text>`}${badge}</g>`}).join('');
+    return `<g class="tag" data-id="${v.id}">${poly}${bl}${fr}${ring}${hi}${ck}${n?'':`<text x="${x}" y="${y}" opacity="${gone?0.45:1}">${v.id}</text>`}${badge}</g>`}).join('');
   return svg;
 }
 // ---- map tab
@@ -159,7 +177,35 @@ function info(){ const v=byId[sel];
 document.getElementById('fleet').innerHTML=Object.keys(COLS).map(c=>{const vs=V.filter(v=>v.col===c);
   return `<p style="margin:6px 0">${dot(c)} <b>${COLS[c].name}</b> <span class="muted">(${vs.reduce((a,v)=>a+v.cap,0)} seats)</span><br>${vs.map(v=>`${v.id} ${v.size==='L'?'40':v.size==='M'?'24':'16'}`).join(' · ')}</p>`}).join('');
 // ---- blocking tab
-document.getElementById('btab').innerHTML=V.map(v=>`<tr><td>${chip(v.id)}</td><td class="n">${v.cap}</td><td>${BL[v.id].map(chip).join(' ')||'<b class="ok">Free</b>'}</td><td>${FREES[v.id].map(chip).join(' ')}</td></tr>`).join('');
+let bsel='Y1', bedit=false;
+function drawBlock(){
+  const ok=new Set(OVR.ok);
+  overlay(document.getElementById('b-block'),{sel:bsel,path:bsel,frees:bsel,checked:ok});
+  const v=byId[bsel], changed=(OVR.add[bsel]||[]).length||(OVR.rem[bsel]||[]).length;
+  document.getElementById('bk-info').innerHTML=`<h3>${dot(v.col)} ${v.id} · ${COLS[v.col].name} ${v.cap}, heading ${({u:'up',d:'down',l:'left',r:'right',ul:'up-left',ur:'up-right',dl:'down-left',dr:'down-right'})[v.dir]}${ok.has(v.id)?' <span class="ok tagl">checked</span>':''}${changed?' <span class="warn tagl">fixed by you</span>':''}</h3>
+   <p style="margin:6px 0 2px">Blocked by: ${BL[v.id].length?BL[v.id].map(chip).join(' '):'<b class="ok">nothing, free at the start</b>'}</p>
+   <p style="margin:2px 0">Frees: ${FREES[v.id].length?FREES[v.id].map(chip).join(' '):'<span class="muted">nothing</span>'}</p>`;
+  document.getElementById('bk-prog').textContent=`${ok.size} of ${V.length} checked`;
+  const eb=document.getElementById('bk-edit'); eb.setAttribute('aria-pressed',bedit); eb.setAttribute('aria-selected',bedit); eb.textContent=bedit?'Done fixing':'Fix blockers';
+  document.getElementById('bk-editmsg').hidden=!bedit; document.getElementById('bk-who').textContent=bsel;
+  const fx=V.filter(x=>(OVR.add[x.id]||[]).length||(OVR.rem[x.id]||[]).length);
+  document.getElementById('bk-fixes').innerHTML=fx.length?fx.map(x=>`<p style="margin:4px 0">${chip(x.id)} ${(OVR.add[x.id]||[]).map(b=>'<span class="bad tagl">+ blocked by '+b+'</span>').join(' ')} ${(OVR.rem[x.id]||[]).map(b=>'<span class="ok tagl">− not blocked by '+b+'</span>').join(' ')}</p>`).join(''):'<p class="muted" style="margin:0">No fixes yet.</p>';
+  document.getElementById('btab').innerHTML=V.map(x=>`<tr><td>${chip(x.id)}</td><td class="n">${x.cap}</td><td>${BL[x.id].map(chip).join(' ')||'<b class="ok">Free</b>'}</td><td>${FREES[x.id].map(chip).join(' ')}</td></tr>`).join('');
+}
+function blockChanged(){ applyBL(); saveOVR(); drawBlock(); if(sel) { drawMap(); info(); } if(typeof rerun==='function') rerun(); }
+document.getElementById('b-block').addEventListener('click',e=>{const g=e.target.closest('.tag'); if(!g) return; const id=g.dataset.id;
+  if(bedit && id!==bsel){ const base=BASE[bsel].includes(id); const k=base?'rem':'add'; const arr=OVR[k][bsel]=OVR[k][bsel]||[];
+    const i=arr.indexOf(id); if(i>=0) arr.splice(i,1); else arr.push(id); if(!arr.length) delete OVR[k][bsel]; blockChanged(); return; }
+  bsel=id; drawBlock(); });
+const step=d=>{ const i=V.findIndex(x=>x.id===bsel); bsel=V[(i+d+V.length)%V.length].id; drawBlock(); };
+document.getElementById('bk-prev').onclick=()=>step(-1);
+document.getElementById('bk-next').onclick=()=>step(1);
+document.getElementById('bk-ok').onclick=()=>{ if(!OVR.ok.includes(bsel)) OVR.ok.push(bsel); saveOVR(); const nxt=V.find(x=>!OVR.ok.includes(x.id)); if(nxt) bsel=nxt.id; bedit=false; drawBlock(); };
+document.getElementById('bk-edit').onclick=()=>{ bedit=!bedit; drawBlock(); };
+document.getElementById('bk-reset').onclick=()=>{ OVR.add={}; OVR.rem={}; blockChanged(); };
+document.getElementById('bk-copy').onclick=async()=>{ const lines=V.filter(x=>(OVR.add[x.id]||[]).length||(OVR.rem[x.id]||[]).length).map(x=>x.id+': '+[...(OVR.add[x.id]||[]).map(b=>'+'+b),...(OVR.rem[x.id]||[]).map(b=>'-'+b)].join(' '));
+  const txt=lines.length?'Block fixes\n'+lines.join('\n'):'No block fixes'; try{ await navigator.clipboard.writeText(txt); document.getElementById('bk-msg').textContent='Copied.'; }catch(e){ document.getElementById('bk-msg').textContent=txt; } };
+drawBlock();
 // ---- people tab
 let left, pool;
 function load(){ try{const d=JSON.parse(localStorage.getItem('l8v3')||'null'); if(d){left=d.left;pool=d.pool;return;}}catch(e){} left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; }
