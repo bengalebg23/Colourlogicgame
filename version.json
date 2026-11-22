@@ -1,5 +1,5 @@
 {
-  "version": 6,
-  "built": "22 Nov 2026 16:48",
-  "notes": "Version number and update banner; Play shows which data it is using."
+  "version": 7,
+  "built": "22 Nov 2026 18:02",
+  "notes": "Middle now starts with exactly what you enter on the People tab (no top-up at the start)."
 }

@@ -104,12 +104,13 @@ function buildRight(pool,left){
 }
 
 // ---- simulator ----
-const POOL_CAP = 216, BAYS = 4;
+const BAYS = 4; // the middle holds exactly what it starts with (the total entered for the start)
 function newState(pool,left,right){
-  return { gone:new Set(), parked:[], pool:{...pool}, q:[...left.map(g=>[...g]), ...right.map(g=>[...g])],
+  const cap=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
+  return { gone:new Set(), parked:[], pool:{...pool}, cap, q:[...left.map(g=>[...g]), ...right.map(g=>[...g])],
            leftLen:left.length, log:[] };
 }
-function clone(s){ return { gone:new Set(s.gone), parked:s.parked.map(p=>({...p})), pool:{...s.pool},
+function clone(s){ return { gone:new Set(s.gone), parked:s.parked.map(p=>({...p})), pool:{...s.pool}, cap:s.cap,
   q:s.q.map(g=>[...g]), leftLen:s.leftLen, log:[...s.log] }; }
 function poolTotal(s){ return Object.values(s.pool).reduce((a,b)=>a+b,0); }
 function settle(s){
@@ -118,7 +119,7 @@ function settle(s){
     for(const p of s.parked){ const a=Math.min(p.need, s.pool[p.col]||0);
       if(a>0){ p.need-=a; s.pool[p.col]-=a; changed=true; } }
     const before=s.parked.length; s.parked=s.parked.filter(p=>p.need>0); if(s.parked.length!==before) changed=true;
-    let room=POOL_CAP-poolTotal(s);
+    let room=s.cap-poolTotal(s);
     while(room>0 && s.q.length){ const g=s.q[0], t=Math.min(room,g[1]);
       s.pool[g[0]]=(s.pool[g[0]]||0)+t; g[1]-=t; room-=t; changed=true;
       if(g[1]===0){ s.q.shift(); if(s.leftLen>0) s.leftLen--; } }

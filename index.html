@@ -70,7 +70,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v6</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v7</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -98,7 +98,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
  <div class="strip" id="strip"></div></div>
  <div class="grid2">
  <div class="card"><h3>Groups</h3><ol class="lane" id="lane"></ol><div class="row"><button id="add">Add group</button><button id="reset">Reset to saved counts</button></div></div>
- <div class="card"><h3>In the middle at the start</h3><div id="poolEd"></div>
+ <div class="card"><h3>In the middle at the start</h3><p class="muted" id="poolNote" style="margin:0 0 8px"></p><div id="poolEd"></div>
  <h3 style="margin-top:16px">Check against the vehicles</h3><p class="muted">Seats on the board must equal all the people. Whatever the left track and middle don't cover is assumed to come down the right track (yellow, blue, red at its front, then the rest), which only moves once the left track is empty.</p>
  <table><thead><tr><th>Colour</th><th class="n">Seats</th><th class="n">Middle + left</th><th class="n">Right track</th></tr></thead><tbody id="chk"></tbody></table></div>
  </div>
@@ -243,12 +243,13 @@ function buildRight(pool,left){
 }
 
 // ---- simulator ----
-const POOL_CAP = 216, BAYS = 4;
+const BAYS = 4; // the middle holds exactly what it starts with (the total entered for the start)
 function newState(pool,left,right){
-  return { gone:new Set(), parked:[], pool:{...pool}, q:[...left.map(g=>[...g]), ...right.map(g=>[...g])],
+  const cap=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
+  return { gone:new Set(), parked:[], pool:{...pool}, cap, q:[...left.map(g=>[...g]), ...right.map(g=>[...g])],
            leftLen:left.length, log:[] };
 }
-function clone(s){ return { gone:new Set(s.gone), parked:s.parked.map(p=>({...p})), pool:{...s.pool},
+function clone(s){ return { gone:new Set(s.gone), parked:s.parked.map(p=>({...p})), pool:{...s.pool}, cap:s.cap,
   q:s.q.map(g=>[...g]), leftLen:s.leftLen, log:[...s.log] }; }
 function poolTotal(s){ return Object.values(s.pool).reduce((a,b)=>a+b,0); }
 function settle(s){
@@ -257,7 +258,7 @@ function settle(s){
     for(const p of s.parked){ const a=Math.min(p.need, s.pool[p.col]||0);
       if(a>0){ p.need-=a; s.pool[p.col]-=a; changed=true; } }
     const before=s.parked.length; s.parked=s.parked.filter(p=>p.need>0); if(s.parked.length!==before) changed=true;
-    let room=POOL_CAP-poolTotal(s);
+    let room=s.cap-poolTotal(s);
     while(room>0 && s.q.length){ const g=s.q[0], t=Math.min(room,g[1]);
       s.pool[g[0]]=(s.pool[g[0]]||0)+t; g[1]-=t; room-=t; changed=true;
       if(g[1]===0){ s.q.shift(); if(s.leftLen>0) s.leftLen--; } }
@@ -386,6 +387,8 @@ function drawPeople(){
   document.getElementById('strip').innerHTML=left.map(([c,n],i)=>`<span class="blk" style="background:${COLS[c].hex};flex:${n} 0 0">${i+1}. ${n}</span>`).join('');
   document.getElementById('lane').innerHTML=left.map(([c,n],i)=>`<li>${i+1}<select data-i="${i}" data-k="c" aria-label="Colour of group ${i+1}">${opts(c)}</select><input data-i="${i}" data-k="n" type="number" step="4" min="4" value="${n}" aria-label="People in group ${i+1}"><button data-i="${i}" data-k="up" aria-label="Move up">↑</button><button data-i="${i}" data-k="dn" aria-label="Move down">↓</button><button data-i="${i}" data-k="x" aria-label="Remove">×</button></li>`).join('');
   document.getElementById('poolEd').innerHTML=Object.keys(COLS).map(c=>`<label class="row" style="margin-bottom:6px">${dot(c)}<span style="width:90px">${COLS[c].name}</span><input type="number" step="4" min="0" value="${pool[c]||0}" data-pc="${c}" style="width:90px"></label>`).join('');
+  const ptot=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
+  document.getElementById('poolNote').textContent=`The middle holds ${ptot} people (${ptot/4} lines), the total you enter here. As people board, the left track tops it back up to ${ptot}.`;
   const {rem}=buildRight(pool,left), t=totals();
   document.getElementById('chk').innerHTML=Object.keys(COLS).map(c=>`<tr><td>${dot(c)} ${COLS[c].name}</td><td class="n">${t[c]}</td><td class="n">${t[c]-rem[c]}</td><td class="n ${rem[c]<0?'bad':''}">${rem[c]<0?'Too many by '+(-rem[c]):rem[c]}</td></tr>`).join('');
 }
@@ -533,7 +536,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=6, APP_BUILT='22 Nov 2026 16:48';
+const APP_VERSION=7, APP_BUILT='22 Nov 2026 18:02';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{

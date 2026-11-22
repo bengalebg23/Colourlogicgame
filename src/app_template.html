@@ -98,7 +98,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
  <div class="strip" id="strip"></div></div>
  <div class="grid2">
  <div class="card"><h3>Groups</h3><ol class="lane" id="lane"></ol><div class="row"><button id="add">Add group</button><button id="reset">Reset to saved counts</button></div></div>
- <div class="card"><h3>In the middle at the start</h3><div id="poolEd"></div>
+ <div class="card"><h3>In the middle at the start</h3><p class="muted" id="poolNote" style="margin:0 0 8px"></p><div id="poolEd"></div>
  <h3 style="margin-top:16px">Check against the vehicles</h3><p class="muted">Seats on the board must equal all the people. Whatever the left track and middle don't cover is assumed to come down the right track (yellow, blue, red at its front, then the rest), which only moves once the left track is empty.</p>
  <table><thead><tr><th>Colour</th><th class="n">Seats</th><th class="n">Middle + left</th><th class="n">Right track</th></tr></thead><tbody id="chk"></tbody></table></div>
  </div>
@@ -217,6 +217,8 @@ function drawPeople(){
   document.getElementById('strip').innerHTML=left.map(([c,n],i)=>`<span class="blk" style="background:${COLS[c].hex};flex:${n} 0 0">${i+1}. ${n}</span>`).join('');
   document.getElementById('lane').innerHTML=left.map(([c,n],i)=>`<li>${i+1}<select data-i="${i}" data-k="c" aria-label="Colour of group ${i+1}">${opts(c)}</select><input data-i="${i}" data-k="n" type="number" step="4" min="4" value="${n}" aria-label="People in group ${i+1}"><button data-i="${i}" data-k="up" aria-label="Move up">↑</button><button data-i="${i}" data-k="dn" aria-label="Move down">↓</button><button data-i="${i}" data-k="x" aria-label="Remove">×</button></li>`).join('');
   document.getElementById('poolEd').innerHTML=Object.keys(COLS).map(c=>`<label class="row" style="margin-bottom:6px">${dot(c)}<span style="width:90px">${COLS[c].name}</span><input type="number" step="4" min="0" value="${pool[c]||0}" data-pc="${c}" style="width:90px"></label>`).join('');
+  const ptot=Object.values(pool).reduce((a,b)=>a+(+b||0),0);
+  document.getElementById('poolNote').textContent=`The middle holds ${ptot} people (${ptot/4} lines), the total you enter here. As people board, the left track tops it back up to ${ptot}.`;
   const {rem}=buildRight(pool,left), t=totals();
   document.getElementById('chk').innerHTML=Object.keys(COLS).map(c=>`<tr><td>${dot(c)} ${COLS[c].name}</td><td class="n">${t[c]}</td><td class="n">${t[c]-rem[c]}</td><td class="n ${rem[c]<0?'bad':''}">${rem[c]<0?'Too many by '+(-rem[c]):rem[c]}</td></tr>`).join('');
 }
