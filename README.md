@@ -15,5 +15,8 @@ A one-page helper for Level 8 of the bus-parking colour game. Open `index.html` 
 - Anyone in the middle can board; the left track feeds the middle first, the right track only once the left is empty.
 - The right track's make-up is still estimated (whatever the left track and middle don't cover).
 
+## Versions
+The version and build time show next to the title. If `version.json` on the site is newer than the page you have open, a green bar offers **Update now**.
+
 ## Editing
-The source is in `src/`. Change `model.js` (vehicles, default track counts) or `app_template.html`, then run `python3 src/build.py` to rebuild `index.html`.
+The source is in `src/`. Change `model.js` (vehicles, default track counts) or `app_template.html`, then run `python3 src/build.py "what changed"` to rebuild `index.html` and bump the version.

@@ -69,7 +69,8 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:600px){table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-block:10px;border-bottom:1px solid var(--line)}.stack td{display:flow-root;border:0;padding:3px 0;padding-inline-start:7em;text-align:start}.stack td::before{content:attr(data-l);float:inline-start;width:6.5em;margin-inline-start:-7em;color:var(--mut)}.stack td:empty{display:none}}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
-<header><h1>Level 8 solver</h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v__VERSION__</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -124,6 +125,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
  <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px"><h2 style="margin:0">Your move</h2><div class="row"><button id="g-undo">Undo</button><button id="g-restart">Restart</button></div></div>
   <div id="g-choices"></div>
   <p class="muted" id="g-hist" style="margin:8px 0 0"></p>
+  <p class="muted" id="g-src" style="margin:6px 0 0;font-size:13px"></p>
   <p class="muted" style="margin:6px 0 0;font-size:13px">Left column: middle now at the top, then the next ten groups in arrival order. Green ring = can move now; tap the board or a choice.</p></div>
  <div class="card"><h3>Save or load a play-through</h3>
   <div class="row"><input id="g-name" placeholder="Name, e.g. Route C" aria-label="Name for this play-through" style="flex:1 1 160px"><button id="g-save">Save</button></div>
@@ -333,6 +335,8 @@ function drawGuide(){
   document.getElementById('g-line').textContent=`${s.gone.size}/${V.length} gone`;
   const r=st==='OK'?rank(s):[];
   const showAll=window.__gAll; document.getElementById('g-choices').innerHTML=(r.length?r.slice(0,showAll?99:4).map((x,i)=>`<button class="choice${i===0?' best':''}" data-id="${x.v.id}">${dot(x.v.col)}<span><b>${x.v.id}</b> ${COLS[x.v.col].name} ${x.v.cap}${i===0?(x.cls==='bad'?' · <span class="bad tagl">no safe move</span>':' · <span class="ok tagl">suggested</span>'):''}<br><span class="tagl ${x.cls}">${x.why.join(' · ')}</span></span></button>`).join(''):'<p class="muted">No moves.</p>')+(r.length>4?`<button id="g-more" style="width:100%">${showAll?'Show fewer':'Show all '+r.length+' options'}</button>`:'');
+  const fixes=V.filter(x=>(OVR.add[x.id]||[]).length||(OVR.rem[x.id]||[]).length).length;
+  document.getElementById('g-src').textContent=`Using the People tab (${left.length} left-track groups, ${Object.values(pool).reduce((a,b)=>a+b,0)} in the middle at the start)`+(fixes?` and your block fixes on ${fixes} vehicle${fixes>1?'s':''}.`:' and the Blocks tab.');
   document.getElementById('g-hist').textContent=gm.length?'Moves so far: '+gm.join(' → '):'';
   if(typeof drawSaved==='function') drawSaved();
 }
@@ -359,6 +363,15 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
   setGm(ok); document.getElementById('g-msg').textContent=bad?`Loaded ${ok.length} moves; stopped at ${bad}.`:`Loaded ${ok.length} moves.`; };
 
 
+// ---- version check
+const APP_VERSION=__VERSION__, APP_BUILT='__BUILT__';
+document.getElementById('ver').title='Built '+APP_BUILT;
+document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
+fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+  if(j&&j.version>APP_VERSION){ document.getElementById('upd').hidden=false;
+    document.getElementById('upd-t').textContent=`Version ${j.version} is out (you have ${APP_VERSION})`+(j.notes?': '+j.notes:'.'); }
+}).catch(()=>{});
+document.getElementById('upd-b').onclick=()=>{ location.replace(location.pathname+'?v='+Date.now()+location.hash); };
 // ---- tabs
 function show(t){ for(const b of document.querySelectorAll('nav button')) b.setAttribute('aria-selected',b.dataset.t===t);
   for(const s of document.querySelectorAll('main>section')) s.hidden=s.id!==t;
