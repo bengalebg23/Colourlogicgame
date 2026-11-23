@@ -226,7 +226,7 @@ drawBlock();
 let left, pool, right=[], poolOk=false, open={left:true,right:true};
 const LISTS={left:()=>left,right:()=>right};
 function load(){ try{const d=JSON.parse(localStorage.getItem('l8v3')||'null'); if(d){left=d.left;pool=d.pool;poolOk=!!d.poolOk;right=d.right||[];open=Object.assign({left:true,right:true},d.open||{});return;}}catch(e){}
-  left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; right=[]; poolOk=false; }
+  left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; right=DEFAULT_RIGHT.map(g=>[...g]); poolOk=false; }
 function save(){ try{localStorage.setItem('l8v3',JSON.stringify({left,pool,poolOk,right,open}));}catch(e){} }
 const opts=c=>Object.keys(COLS).map(k=>`<option value="${k}"${k===c?' selected':''}>${COLS[k].name}</option>`).join('');
 const W=n=>Math.max(6,n/4*12);   // 1 line of 4 people = 12px wide

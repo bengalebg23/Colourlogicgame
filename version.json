@@ -1,5 +1,5 @@
 {
-  "version": 12,
-  "built": "23 Nov 2026 04:02",
-  "notes": "Right track can now be entered; left track card can be minimised; counts can be copied as text."
+  "version": 13,
+  "built": "23 Nov 2026 04:09",
+  "notes": "Your full left track, middle and first right-track groups are now built in."
 }

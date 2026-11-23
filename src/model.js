@@ -85,11 +85,16 @@ function computeBlockers(){
 
 // ---- people ----
 // Middle (spinning ring) at the start, and the left lane front -> back. Counts are people (4 per line).
-const DEFAULT_POOL = { Y:52, C:36, R:88, G:40 };
+const DEFAULT_POOL = { Y:24, R:52, G:24, C:24 };
 const DEFAULT_LEFT = [
-  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['P',16],['B',24],['G',24],['LP',24],['N',16],
-  ['C',20],['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],
-  ['C',20],['G',20],['O',20],['R',16],['Y',32],['G',24],
+  ['R',4], ['G',24], ['LP',40], ['Y',24], ['G',16], ['P',16], ['B',24], ['C',16], ['G',24], ['LP',24],
+  ['N',16], ['C',16], ['Y',16], ['P',16], ['B',24], ['P',24], ['C',24], ['Y',16], ['M',16], ['LP',16],
+  ['Y',24], ['R',24], ['C',16], ['G',16], ['O',16], ['R',16], ['Y',36], ['G',16], ['M',24], ['O',24],
+  ['G',16], ['M',16], ['Y',16], ['C',16], ['P',24], ['Y',4], ['P',16], ['O',16], ['C',16], ['N',24],
+  ['R',24], ['LP',24], ['N',24], ['O',24], ['LP',24],
+];
+const DEFAULT_RIGHT = [
+  ['Y',24], ['B',16], ['R',24],
 ];
 const RIGHT_FRONT = ['Y','B','R']; // seen at the front of the right lane
 
@@ -169,4 +174,4 @@ function solve(pool,left,right,BL,limit=200000,prefix=[]){
   const win=dfs(start);
   return { win: !!win, moves:(win||best).log, nodes };
 }
-if (typeof module!=='undefined') module.exports={V,COLS,CAP,computeBlockers,DEFAULT_POOL,DEFAULT_LEFT,buildRight,totals,runScenario,solve,newState,settle,tap,status,isFree,clone};
+if (typeof module!=='undefined') module.exports={V,COLS,CAP,computeBlockers,DEFAULT_POOL,DEFAULT_LEFT,DEFAULT_RIGHT,buildRight,totals,runScenario,solve,newState,settle,tap,status,isFree,clone};

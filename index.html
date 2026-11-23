@@ -82,7 +82,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v12</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v13</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -238,11 +238,16 @@ function computeBlockers(){
 
 // ---- people ----
 // Middle (spinning ring) at the start, and the left lane front -> back. Counts are people (4 per line).
-const DEFAULT_POOL = { Y:52, C:36, R:88, G:40 };
+const DEFAULT_POOL = { Y:24, R:52, G:24, C:24 };
 const DEFAULT_LEFT = [
-  ['R',4],['G',24],['LP',40],['Y',24],['G',16],['P',16],['B',24],['G',24],['LP',24],['N',16],
-  ['C',20],['Y',20],['P',20],['B',20],['C',24],['Y',20],['M',20],['LP',20],['Y',24],['R',24],
-  ['C',20],['G',20],['O',20],['R',16],['Y',32],['G',24],
+  ['R',4], ['G',24], ['LP',40], ['Y',24], ['G',16], ['P',16], ['B',24], ['C',16], ['G',24], ['LP',24],
+  ['N',16], ['C',16], ['Y',16], ['P',16], ['B',24], ['P',24], ['C',24], ['Y',16], ['M',16], ['LP',16],
+  ['Y',24], ['R',24], ['C',16], ['G',16], ['O',16], ['R',16], ['Y',36], ['G',16], ['M',24], ['O',24],
+  ['G',16], ['M',16], ['Y',16], ['C',16], ['P',24], ['Y',4], ['P',16], ['O',16], ['C',16], ['N',24],
+  ['R',24], ['LP',24], ['N',24], ['O',24], ['LP',24],
+];
+const DEFAULT_RIGHT = [
+  ['Y',24], ['B',16], ['R',24],
 ];
 const RIGHT_FRONT = ['Y','B','R']; // seen at the front of the right lane
 
@@ -396,7 +401,7 @@ drawBlock();
 let left, pool, right=[], poolOk=false, open={left:true,right:true};
 const LISTS={left:()=>left,right:()=>right};
 function load(){ try{const d=JSON.parse(localStorage.getItem('l8v3')||'null'); if(d){left=d.left;pool=d.pool;poolOk=!!d.poolOk;right=d.right||[];open=Object.assign({left:true,right:true},d.open||{});return;}}catch(e){}
-  left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; right=[]; poolOk=false; }
+  left=DEFAULT_LEFT.map(g=>[...g]); pool={...DEFAULT_POOL}; right=DEFAULT_RIGHT.map(g=>[...g]); poolOk=false; }
 function save(){ try{localStorage.setItem('l8v3',JSON.stringify({left,pool,poolOk,right,open}));}catch(e){} }
 const opts=c=>Object.keys(COLS).map(k=>`<option value="${k}"${k===c?' selected':''}>${COLS[k].name}</option>`).join('');
 const W=n=>Math.max(6,n/4*12);   // 1 line of 4 people = 12px wide
@@ -613,7 +618,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=12, APP_BUILT='23 Nov 2026 04:02';
+const APP_VERSION=13, APP_BUILT='23 Nov 2026 04:09';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
