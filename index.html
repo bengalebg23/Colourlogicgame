@@ -81,7 +81,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v10</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v11</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -489,6 +489,23 @@ let gm=[];
 const AGREED=['Y2','R1','Y1','R2','G1','G2','C1','LP3','N1','C2','G3','P1','Y3'];
 function gState(){ const s=newState(pool,left,rightNow()); settle(s); for(const m of gm){ if(tap(s,m,BL)) break; } return s; }
 function moreComing(s,c,lim){ let n=0,seen=0; for(const g of s.q){ if(seen>=lim) break; if(g[0]===c) n+=g[1]; seen+=g[1]; } return n; }
+// Where the next people of colour c are in the queue, and when there will be enough to cover `need`.
+// "ahead" = people in front of that group, who must board other vehicles before it reaches the middle.
+function whenComing(s,c,need){ let ahead=0, got=0, first=null;
+  for(let i=0;i<s.q.length;i++){ const g=s.q[i];
+    if(g[0]===c){ const track=i<s.leftLen?'left':'right', grp=i<s.leftLen?(left.length-s.leftLen+i+1):(i-s.leftLen+1);
+      if(!first) first={ahead,n:g[1],track,grp,pos:i+1}; got+=g[1];
+      if(got>=need) return {first, enough:{ahead,track,grp,pos:i+1}}; }
+    ahead+=g[1]; }
+  return {first, enough:null, got}; }
+function comingText(s,c,need){ const w=whenComing(s,c,need), nm=COLS[c].name.toLowerCase();
+  if(!w.first) return `no more ${nm} coming`;
+  const f=w.first, place=f.pos===1?'next in the queue':`${f.pos}${['th','st','nd','rd'][(f.pos%100>10&&f.pos%100<14)||f.pos%10>3?0:f.pos%10]} in the queue`;
+  let txt=`next ${nm}: ${f.n} people, ${place} (${f.track} track group ${f.grp}), ${f.ahead?f.ahead+' people must board first':'arrives as soon as space opens'}`;
+  if(!w.enough) txt+=`; only ${w.got} ${nm} left in total`;
+  else if(w.enough.pos!==f.pos) txt+=`; enough for this one after ${w.enough.ahead} people (${w.enough.track} track group ${w.enough.grp})`;
+  if((w.enough&&w.enough.track==='right')||(!w.enough&&f.track==='right')) txt+=' (right track is an estimate)';
+  return txt; }
 function rank(s){
   const free=V.filter(v=>isFree(s,v.id,BL));
   const waiting=s.parked.length;
@@ -501,8 +518,9 @@ function rank(s){
     if(same && (s.pool[v.col]||0)<same.need+v.cap){ sc-=80; why.push(`${same.id} is already waiting for ${COLS[v.col].name.toLowerCase()}`); cls='bad'; }
     if(fills){ sc+=100; why.unshift('Fills now'); }
     else { const spaces=4-waiting; sc+= have/v.cap*40 - (spaces<=1?200:spaces===2?60:20);
-      why.unshift(`Waits for ${short} more`+(soon>=short?` (${soon} coming soon)`:soon?` (only ${soon} coming soon)`:' (none coming soon)'));
-      if(soon>=short) sc+=25;
+      const wc=whenComing(s,v.col,short);
+      why.unshift(`Waits for ${short} more — ${comingText(s,v.col,short)}`);
+      if(wc.enough && wc.enough.ahead<=120) sc+=25;
       cls=spaces<=1?'bad':'warn'; if(spaces<=1) why.push('uses your LAST space'); }
     if(opens.length){ sc+=opens.length*12; why.push('opens '+opens.map(o=>o.id).join(', ')); }
     const nextAgreed=AGREED.find(id=>!s.gone.has(id));
@@ -523,7 +541,7 @@ function drawGuide(){
   overlay(document.getElementById('g-board'),{gone:s.gone,free});
   document.getElementById('g-q').innerHTML=qcol(s);
   const b=[...s.parked]; while(b.length<4) b.push(null);
-  document.getElementById('g-bays').innerHTML=b.map(p=>p?`<div class="bay" style="background:${COLS[p.col].hex};border-style:solid">${p.id}<small>needs ${p.need}</small></div>`:`<div class="bay"></div>`).join('');
+  document.getElementById('g-bays').innerHTML=b.map(p=>p?`<div class="bay" style="background:${COLS[p.col].hex};border-style:solid" title="${comingText(s,p.col,p.need)}">${p.id}<small>needs ${p.need}</small><small>${(()=>{const w=whenComing(s,p.col,p.need);return w.enough?(w.enough.ahead?w.enough.ahead+' away':'next'):'none left'})()}</small></div>`:`<div class="bay"></div>`).join('');
   const w=s.parked.length;
   document.getElementById('g-verdict').innerHTML= st==='DEAD'?'<span class="bad">Dead: all four spaces full and nothing can board</span>': st==='WIN'?'<span class="ok">Board cleared!</span>':
     `<span class="${w>=3?'warn':'ok'}">Move ${gm.length+1} · ${4-w} free</span>`;
@@ -559,7 +577,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=10, APP_BUILT='22 Nov 2026 20:57';
+const APP_VERSION=11, APP_BUILT='23 Nov 2026 03:37';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{

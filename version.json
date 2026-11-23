@@ -1,5 +1,5 @@
 {
-  "version": 10,
-  "built": "22 Nov 2026 20:57",
-  "notes": "Ticked groups and a ticked middle are locked."
+  "version": 11,
+  "built": "23 Nov 2026 03:37",
+  "notes": "Your move now says how far away the next people of each colour are."
 }
