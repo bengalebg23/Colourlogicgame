@@ -82,7 +82,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v13</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v14</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -413,8 +413,8 @@ function trackCard(name){
   const est=isL?[]:estRight();
   const sumLine=`${arr.length} group${arr.length===1?'':'s'} · ${sum(arr)} people · ${done} checked${arr.length&&done===arr.length?' ✓':''}`;
   let h=`<div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${title}</h2><p class="muted" style="margin:2px 0 0">${sumLine}</p></div><button data-tog="${name}" aria-expanded="${open[name]}">${open[name]?'Minimise':'Expand'}</button></div>`;
-  h+=`<div class="szrow" style="margin-top:10px">${blocks(arr,'Group')}${est.length?`<span class="szlab" style="width:auto;padding:0 4px">then estimate:</span>`+blocks(est,'Estimate'):''}</div>`;
-  if(!isL && !arr.length) h+=`<p class="muted" style="margin:4px 0 0">Nothing entered yet. Add groups front to back as they come down; the dashed blocks are the app's guess for whatever isn't covered.</p>`;
+  if(open[name]) h+=`<div class="szrow" style="margin-top:10px">${blocks(arr,'Group')}${est.length?`<span class="szlab" style="width:auto;padding:0 4px">then estimate:</span>`+blocks(est,'Estimate'):''}</div>`;
+  if(open[name] && !isL && !arr.length) h+=`<p class="muted" style="margin:4px 0 0">Nothing entered yet. Add groups front to back as they come down; the dashed blocks are the app's guess for whatever isn't covered.</p>`;
   if(open[name]){
     h+=`<ol class="lane" data-l="${name}" style="margin-top:10px">${arr.map(([c,n,ok],i)=>{ok=ok===true; return `<li class="${ok?'done':''}"><label class="ck"><input type="checkbox" data-i="${i}" data-k="ok" ${ok?'checked':''} aria-label="Group ${i+1} checked">${i+1}</label><select data-i="${i}" data-k="c" aria-label="Colour of group ${i+1}" ${ok?'disabled':''}>${opts(c)}</select><input data-i="${i}" data-k="n" type="number" step="4" min="4" value="${n}" aria-label="People in group ${i+1}" ${ok?'disabled':''}><button data-i="${i}" data-k="up" aria-label="Move up" ${ok||i===0||arr[i-1][2]===true?'disabled':''}>↑</button><button data-i="${i}" data-k="dn" aria-label="Move down" ${ok||i===arr.length-1||arr[i+1][2]===true?'disabled':''}>↓</button><button data-i="${i}" data-k="x" aria-label="Remove" ${ok?'disabled':''}>${ok?'🔒':'×'}</button></li>`}).join('')}</ol>
     <div class="row"><button data-add="${name}">Add group</button></div>`;
@@ -618,7 +618,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=13, APP_BUILT='23 Nov 2026 04:09';
+const APP_VERSION=14, APP_BUILT='23 Nov 2026 07:02';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
