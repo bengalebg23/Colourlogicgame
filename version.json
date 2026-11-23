@@ -1,5 +1,5 @@
 {
-  "version": 11,
-  "built": "23 Nov 2026 03:37",
-  "notes": "Your move now says how far away the next people of each colour are."
+  "version": 12,
+  "built": "23 Nov 2026 04:02",
+  "notes": "Right track can now be entered; left track card can be minimised; counts can be copied as text."
 }

@@ -5,7 +5,7 @@ A one-page helper for Level 8 of the bus-parking colour game. Open `index.html` 
 ## Tabs
 1. **Map** – every vehicle named (Y1, C2, LP3…), with size, seats, what blocks it and what it frees. `level8-map.png` is the same map as an image.
 2. **Blocks** – visual checker: tap a vehicle to see its path, what blocks it and what it frees; mark it checked or fix its blockers. Fixes feed Scenarios and Play.
-3. **People** – the left track, front to back, with group sizes (4 people per line), plus what's in the middle at the start. Edits are kept in the browser.
+3. **People** – the left and right tracks, front to back, as blocks sized to their people (4 per line), plus the middle at the start. Tick a group to lock it; minimise a finished track; copy everything as text to back it up.
 4. **Scenarios** – Route A, Route B and the app's own search, each played until it dies. Optional move-number overlay.
 5. **Play** – guided play: colour chart of what's coming, parking spaces, and the moves available now, best first. Save, load and copy play-throughs.
 
