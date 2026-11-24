@@ -82,7 +82,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v16</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v17</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -247,7 +247,8 @@ const DEFAULT_LEFT = [
   ['R',24], ['LP',24], ['N',24], ['O',24], ['LP',24],
 ];
 const DEFAULT_RIGHT = [
-  ['Y',24], ['B',16], ['R',24], ['B',24], ['G',16], ['Y',16], ['R',40], ['Y',24], ['G',48],
+  ['Y',24], ['B',16], ['R',24], ['B',24], ['G',16], ['Y',16], ['R',40], ['Y',24], ['G',48], ['R',24],
+  ['Y',24], ['O',24], ['B',24],
 ];
 const RIGHT_FRONT = ['Y','B','R']; // seen at the front of the right lane
 
@@ -653,7 +654,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=16, APP_BUILT='24 Nov 2026 06:32';
+const APP_VERSION=17, APP_BUILT='24 Nov 2026 23:20';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
