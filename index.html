@@ -82,7 +82,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v15</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v16</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -470,12 +470,15 @@ const OPEN=['Y2','R1','Y1','R2','G1','G2','C1','LP3'];
 const SC={
  A:{name:'A · first route',desc:'Your first route: the opening, then the left side (Y3, P4, B6), then brown and the right column. After the scripted moves the app keeps playing the best moves it can find until it dies.',script:[...OPEN,'Y3','P4','B6','N1','C2','G3','P1','R4','Y6','LP2','B2']},
  B:{name:'B · route B',desc:'The opening, then brown first to open the right column, then down the left column. Y6 is stuck behind P4, as you found, so it is skipped. After the script the app keeps playing until it dies.',script:[...OPEN,'N1','C2','G3','P1','Y3','Y6','LP2','B2','R4','R3']},
+ S:{name:'S · stays alive',desc:'',moves:[]},
  C:{name:'C · solver',desc:'The app searches every order from the start and plays the best one it finds with the people data on tab 3.',moves:null},
 };
 let cur='A', runs={}, at=0;
 function rerun(){
+  ALV=new Map(); ALV_N=0;
   if(typeof drawGuide==='function') setTimeout(drawGuide,0);
   const R=rightNow();
+  SC.S.moves=[]; SC.S.stale=true;
   const sol=solve(pool,left,R,BL,60000); SC.C.moves=sol.moves; SC.C.win=sol.win; SC.C.auto=0;
   for(const k of ['A','B']){ // play the script, skip impossible taps, then let the solver carry on until it dies
     const s=newState(pool,left,R); settle(s); const ok=[], skipped={};
@@ -485,8 +488,12 @@ function rerun(){
   for(const k of Object.keys(SC)) runs[k]=runScenario(SC[k].moves,pool,left,R,BL);
   if(at>runs[cur].steps.length-1) at=runs[cur].steps.length-1; drawPlay();
 }
+function ensureS(){ if(!SC.S.stale) return; const line=stayAliveLine(); SC.S.moves=line||[]; SC.S.found=!!line; SC.S.stale=false;
+  runs.S=runScenario(SC.S.moves,pool,left,rightNow(),BL); if(cur==='S') at=runs.S.steps.length-1; }
 function drawPlay(){
+  if(cur==='S') ensureS();
   document.getElementById('scbtns').innerHTML=Object.keys(SC).map(k=>`<button data-sc="${k}" aria-selected="${k===cur}">${SC[k].name}</button>`).join('');
+  SC.S.desc=SC.S.found?`The best line that gets through every person you've mapped without dying (${SC.S.moves.length} moves). After that it depends on the right-track people you haven't entered yet, which the app is still guessing.`:'No line found that survives every mapped person.';
   document.getElementById('scdesc').textContent=SC[cur].desc+(cur==='C'?(SC.C.win?' It found a win.':' No win found with this data, so this is the longest run before dying.'):'');
   const run=runs[cur], st=run.steps[at], s=st.s, last=at===run.steps.length-1;
   const free=new Set(V.filter(v=>isFree(s,v.id,BL)).map(v=>v.id));
@@ -547,8 +554,33 @@ function comingText(s,c,need){ const w=whenComing(s,c,need), nm=COLS[c].name.toL
   else if(w.enough.pos!==f.pos) txt+=`; enough for this one after ${w.enough.ahead} people (${w.enough.track} track group ${w.enough.grp})`;
   if((w.enough&&w.enough.est)||(!w.enough&&f.est)||f.est) txt+=' (estimated: not on your right-track list yet)';
   return txt; }
+
+// ---- survival check: can a position get through every MAPPED person (middle, left track, entered right groups) without dying?
+let ALV=new Map(), ALV_N=0; const ALV_CAP=400000;
+function knownStart(){ const s=newState(pool,left,right.map(g=>[g[0],g[1]])); settle(s); return s; }
+function knownAfter(moves){ const s=knownStart(); for(const mv of moves){ if(tap(s,mv,BL)) break; } return s; }
+const akey=s=>[...s.gone].sort().join(',')+'|'+s.parked.map(p=>p.id+':'+p.need).sort().join(',');
+function survives(s){
+  if(status(s)==='DEAD') return false; if(s.q.length===0) return true;
+  const k=akey(s); if(ALV.has(k)) return ALV.get(k); if(++ALV_N>ALV_CAP) return null;
+  if(s.parked.length>=4){ ALV.set(k,false); return false; }
+  ALV.set(k,false);
+  const kids=V.filter(v=>isFree(s,v.id,BL)).map(v=>{const n=clone(s); tap(n,v.id,BL); return {n,sc:((s.pool[v.col]||0)>=v.cap?100:0)-n.parked.length*20};}).sort((a,b)=>b.sc-a.sc);
+  for(const {n} of kids){ const r=survives(n); if(r===true){ ALV.set(k,true); return true; } if(r===null){ ALV.delete(k); return null; } }
+  return false; }
+// Best line through the mapped people: most vehicles cleared, then fewest waiting, when the mapped people run out.
+function stayAliveLine(){ const memo=new Map(); let n=0;
+  const score=s=>s.gone.size*100-s.parked.length*30-s.parked.reduce((a,p)=>a+p.need,0)/4;
+  function finish(s){ let cur=s, moved=true; while(moved){ moved=false; if(cur.parked.length>=4) break;
+      for(const v of V){ if(isFree(cur,v.id,BL)&&(cur.pool[v.col]||0)>=v.cap){ const x=clone(cur); tap(x,v.id,BL); cur=x; moved=true; break; } } } return cur; }
+  function best(s){ if(status(s)==='DEAD') return null; if(s.q.length===0){ const e=finish(s); return {sc:score(e),e}; }
+    const k=akey(s); if(memo.has(k)) return memo.get(k); if(++n>150000) return null;
+    let b=null; for(const v of V){ if(!isFree(s,v.id,BL)||s.parked.length>=4) continue; const x=clone(s); tap(x,v.id,BL); if(survives(x)!==true) continue; const r=best(x); if(r&&(!b||r.sc>b.sc)) b=r; }
+    memo.set(k,b); return b; }
+  const r=best(knownStart()); return r?r.e.log:null; }
+
 function rank(s){
-  const free=V.filter(v=>isFree(s,v.id,BL));
+  const free=V.filter(v=>isFree(s,v.id,BL)); const ks=knownAfter(gm);
   const waiting=s.parked.length;
   return free.map(v=>{
     const have=s.pool[v.col]||0, fills=have>=v.cap, short=Math.max(0,v.cap-have);
@@ -566,7 +598,10 @@ function rank(s){
     if(opens.length){ sc+=opens.length*12; why.push('opens '+opens.map(o=>o.id).join(', ')); }
     const nextAgreed=AGREED.find(id=>!s.gone.has(id));
     if(v.id===nextAgreed && (fills || v.id==='N1') && cls!=='bad'){ sc+=300; why.unshift('Route B'); }
-    return {v,sc,why,cls};
+    let safe=null; if(ks.parked.length<4 && isFree(ks,v.id,BL)){ const x=clone(ks); tap(x,v.id,BL); safe=survives(x); }
+    if(safe===true){ sc+=500; why.unshift('✓ survives everything mapped'); }
+    else if(safe===false){ sc-=500; why.unshift('✗ dead end before your mapped people run out'); cls='bad'; }
+    return {v,sc,why,cls,safe};
   }).sort((a,b)=>b.sc-a.sc);
 }
 function qcol(s){
@@ -588,7 +623,7 @@ function drawGuide(){
     `<span class="${w>=3?'warn':'ok'}">Move ${gm.length+1} · ${4-w} free</span>`;
   document.getElementById('g-line').textContent=`${s.gone.size}/${V.length} gone`;
   const r=st==='OK'?rank(s):[];
-  const showAll=window.__gAll; document.getElementById('g-choices').innerHTML=(r.length?r.slice(0,showAll?99:4).map((x,i)=>`<button class="choice${i===0?' best':''}" data-id="${x.v.id}">${dot(x.v.col)}<span><b>${x.v.id}</b> ${COLS[x.v.col].name} ${x.v.cap}${i===0?(x.cls==='bad'?' · <span class="bad tagl">no safe move</span>':' · <span class="ok tagl">suggested</span>'):''}<br><span class="tagl ${x.cls}">${x.why.join(' · ')}</span></span></button>`).join(''):'<p class="muted">No moves.</p>')+(r.length>4?`<button id="g-more" style="width:100%">${showAll?'Show fewer':'Show all '+r.length+' options'}</button>`:'');
+  const showAll=window.__gAll; document.getElementById('g-choices').innerHTML=(r.length?r.slice(0,showAll?99:4).map((x,i)=>`<button class="choice${i===0?' best':''}" data-id="${x.v.id}">${dot(x.v.col)}<span><b>${x.v.id}</b> ${COLS[x.v.col].name} ${x.v.cap}${i===0?(x.safe===false||x.cls==='bad'?' · <span class="bad tagl">no safe move</span>':' · <span class="ok tagl">suggested</span>'):''}<br><span class="tagl ${x.cls}">${x.why.join(' · ')}</span></span></button>`).join(''):'<p class="muted">No moves.</p>')+(r.length>4?`<button id="g-more" style="width:100%">${showAll?'Show fewer':'Show all '+r.length+' options'}</button>`:'');
   const fixes=V.filter(x=>(OVR.add[x.id]||[]).length||(OVR.rem[x.id]||[]).length).length;
   document.getElementById('g-src').textContent=`Using the People tab (${left.length} left-track groups, ${Object.values(pool).reduce((a,b)=>a+b,0)} in the middle at the start)`+(fixes?` and your block fixes on ${fixes} vehicle${fixes>1?'s':''}.`:' and the Blocks tab.');
   document.getElementById('g-hist').textContent=gm.length?'Moves so far: '+gm.join(' → '):'';
@@ -618,7 +653,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=15, APP_BUILT='23 Nov 2026 07:45';
+const APP_VERSION=16, APP_BUILT='24 Nov 2026 06:32';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{

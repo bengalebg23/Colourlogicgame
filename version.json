@@ -1,5 +1,5 @@
 {
-  "version": 15,
-  "built": "23 Nov 2026 07:45",
-  "notes": "Right track updated to nine groups."
+  "version": 16,
+  "built": "24 Nov 2026 06:32",
+  "notes": "Play marks each move as safe or a dead end against everything you've mapped; new scenario S stays alive."
 }
