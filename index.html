@@ -82,7 +82,7 @@ select:disabled,input:disabled,button:disabled{cursor:not-allowed;opacity:.45}
 @media(prefers-reduced-motion:no-preference){.tag{transition:opacity .25s}}
 </style><script>new MutationObserver(()=>{for(const c of document.querySelectorAll('.stack td:not([data-l])')){let i=0,p=c;while(p=p.previousElementSibling)i+=p.colSpan;c.dataset.l=c.closest('table').rows[0].cells[i]?.textContent||''}}).observe(document,{childList:true,subtree:true})</script></head><body>
 <div id="upd" hidden style="background:#1f9d4a;color:#fff;padding:10px max(4vw,14px);font-weight:600"><div class="row" style="max-width:1100px;margin:auto;justify-content:space-between"><span id="upd-t">A newer version is available.</span><button id="upd-b" style="background:#fff;color:#14532d;border-color:#fff">Update now</button></div></div>
-<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v17</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
+<header><h1>Level 8 solver <span class="chip" id="ver" style="vertical-align:middle;font-family:Inter,sans-serif;font-size:13px;padding:2px 10px">v18</span></h1><p>Every vehicle named, what blocks what, the people queue, and each route played until it dies.</p></header>
 <nav role="tablist">
 <button data-t="map" aria-selected="true">1 Map</button><button data-t="block">2 Blocks</button><button data-t="people">3 People</button><button data-t="play">4 Scenarios</button><button data-t="guide">5 Play</button>
 </nav>
@@ -228,7 +228,16 @@ function overlap(A,B){
   }
   return true;
 }
-function computeBlockers(){
+// Ben's checked corrections to the computed blocks: '+X' = also blocked by X, '-X' = not blocked by X.
+const BLOCK_FIXES = {
+  N2:['-O1'], G7:['-LP6'], Y8:['-LP6'], B4:['+B1'], G9:['+B2'], O2:['+B2'],
+  B7:['-M1'], P5:['-M1'], LP6:['-R5','-Y8','-G7','-G1'], C5:['-LP1'], M3:['-O1'],
+};
+function computeBlockers(){ const out=computeRawBlockers();
+  for(const [id,fx] of Object.entries(BLOCK_FIXES)) for(const f of fx){ const b=f.slice(1);
+    if(f[0]==='+'&&!out[id].includes(b)) out[id].push(b); if(f[0]==='-') out[id]=out[id].filter(x=>x!==b); }
+  return out; }
+function computeRawBlockers(){
   const bodies = Object.fromEntries(V.map(v=>[v.id, bodyPoly(v)]));
   const out={};
   for (const v of V){ const p=pathPoly(v);
@@ -654,7 +663,7 @@ document.getElementById('g-load').onclick=()=>{ const ids=document.getElementByI
 
 
 // ---- version check
-const APP_VERSION=17, APP_BUILT='24 Nov 2026 23:20';
+const APP_VERSION=18, APP_BUILT='24 Nov 2026 23:27';
 document.getElementById('ver').title='Built '+APP_BUILT;
 document.getElementById('ver').textContent='v'+APP_VERSION+' · '+APP_BUILT;
 fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{

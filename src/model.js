@@ -75,7 +75,16 @@ function overlap(A,B){
   }
   return true;
 }
-function computeBlockers(){
+// Ben's checked corrections to the computed blocks: '+X' = also blocked by X, '-X' = not blocked by X.
+const BLOCK_FIXES = {
+  N2:['-O1'], G7:['-LP6'], Y8:['-LP6'], B4:['+B1'], G9:['+B2'], O2:['+B2'],
+  B7:['-M1'], P5:['-M1'], LP6:['-R5','-Y8','-G7','-G1'], C5:['-LP1'], M3:['-O1'],
+};
+function computeBlockers(){ const out=computeRawBlockers();
+  for(const [id,fx] of Object.entries(BLOCK_FIXES)) for(const f of fx){ const b=f.slice(1);
+    if(f[0]==='+'&&!out[id].includes(b)) out[id].push(b); if(f[0]==='-') out[id]=out[id].filter(x=>x!==b); }
+  return out; }
+function computeRawBlockers(){
   const bodies = Object.fromEntries(V.map(v=>[v.id, bodyPoly(v)]));
   const out={};
   for (const v of V){ const p=pathPoly(v);
